@@ -1,0 +1,144 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f7ef;
+  --panel: #fffdf7;
+  --border: #d7dfcf;
+  --text: #163020;
+  --muted: #5f6f52;
+  --accent: #3c7a3c;
+  --accent-strong: #244c24;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #eef5e7 0%, #f7faf2 100%);
+  color: var(--text);
+}
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.panel {
+  width: 360px;
+  padding: 24px 20px;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  overflow-y: auto;
+}
+
+.panel h1,
+.panel h2 {
+  margin-top: 0;
+}
+
+.intro,
+.status {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.status.error {
+  color: #b42318;
+}
+
+.upload-field,
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 8px;
+}
+
+.upload-field {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.upload-field input {
+  width: 100%;
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.export-control {
+  display: grid;
+  gap: 6px;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-strong);
+}
+
+.filter-group,
+.summary {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+}
+
+output {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.map-shell {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#map {
+  height: 100vh;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .panel {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #map {
+    height: 60vh;
+  }
+}
