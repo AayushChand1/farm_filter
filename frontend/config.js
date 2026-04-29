@@ -1,3 +1,3 @@
 window.FarmDetectConfig = {
-  apiBase: "https://farm-filter.onrender.com",
+  apiBase: "http://192.168.10.86:8000",
 };
