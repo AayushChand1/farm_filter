@@ -2,8 +2,8 @@
   const state = {
     hasProcessedData: false,
     exportName: "filtered_buildings",
-    requestVersion: 0,
-    filterTimer: null,
+    sourceData: null,
+    filteredData: null,
     totalCount: 0,
     visibleCount: 0,
   };
@@ -79,22 +79,17 @@
   function resetState() {
     state.hasProcessedData = false;
     state.exportName = "filtered_buildings";
+    state.sourceData = null;
+    state.filteredData = null;
     state.totalCount = 0;
     state.visibleCount = 0;
-    state.requestVersion += 1;
-    window.clearTimeout(state.filterTimer);
     elements.fileInput.value = "";
     window.FarmDetectMap.clearLayer();
     refreshCounts();
   }
 
-  function renderResult(payload, options) {
-    const previewData = payload.data || { type: "FeatureCollection", features: [] };
-    state.hasProcessedData = true;
-    state.totalCount = Number(payload.totalCount || 0);
-    state.visibleCount = Number(payload.visibleCount || 0);
-
-    window.FarmDetectRender.renderFeatures(previewData, {
+  function renderFilteredData(options) {
+    window.FarmDetectRender.renderFeatures(state.filteredData || { type: "FeatureCollection", features: [] }, {
       fitBounds: Boolean(options && options.fitBounds),
     });
     refreshCounts();
@@ -102,32 +97,14 @@
   }
 
   function applyCurrentFilters() {
-    if (!state.hasProcessedData) {
+    if (!state.hasProcessedData || !state.sourceData) {
       return;
     }
 
-    const filters = getFilters();
-    window.clearTimeout(state.filterTimer);
-    state.filterTimer = window.setTimeout(() => {
-      const requestVersion = ++state.requestVersion;
-      setStatus("Updating filtered preview...");
-
-      window.FarmDetectUpload.fetchFilteredData(filters)
-        .then((payload) => {
-          if (requestVersion !== state.requestVersion) {
-            return;
-          }
-
-          renderResult(payload, { fitBounds: false });
-        })
-        .catch((error) => {
-          if (requestVersion !== state.requestVersion) {
-            return;
-          }
-
-          setStatus(error.message, true);
-        });
-    }, 150);
+    setStatus("Updating filtered preview...");
+    state.filteredData = window.FarmDetectFilters.applyFilters(state.sourceData, getFilters());
+    state.visibleCount = state.filteredData.features.length;
+    renderFilteredData({ fitBounds: false });
   }
 
   async function handleUpload() {
@@ -142,10 +119,14 @@
     try {
       const data = await window.FarmDetectUpload.uploadAndProcess(files, setLiveProgressStatus);
       state.exportName = files[0].name.replace(/\.[^.]+$/, "") || "filtered_buildings";
-      state.requestVersion += 1;
+      state.hasProcessedData = true;
+      state.sourceData = data.data || { type: "FeatureCollection", features: [] };
+      state.totalCount = Number(data.totalCount || state.sourceData.features.length || 0);
       window.FarmDetectFilters.configureSliders(data.sliderBounds, elements);
       updateOutputs();
-      renderResult(data, { fitBounds: true });
+      state.filteredData = window.FarmDetectFilters.applyFilters(state.sourceData, getFilters());
+      state.visibleCount = state.filteredData.features.length;
+      renderFilteredData({ fitBounds: true });
     } catch (error) {
       setStatus(error.message, true);
     }

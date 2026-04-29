@@ -1,5 +1,6 @@
 (function () {
   const map = L.map("map", {
+    preferCanvas: true,
     scrollWheelZoom: true,
   }).setView([28.2, 84.1], 8);
 
