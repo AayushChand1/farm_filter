@@ -196,14 +196,21 @@
     elements.areaSlider,
     elements.ratioSlider,
     elements.angleSlider,
+  ].forEach((element) => {
+    element.addEventListener("input", () => {
+      updateOutputs();
+    });
+    element.addEventListener("change", () => {
+      updateOutputs();
+      applyCurrentFilters();
+    });
+  });
+
+  [
     elements.areaToggle,
     elements.ratioToggle,
     elements.angleToggle,
   ].forEach((element) => {
-    element.addEventListener("input", () => {
-      updateOutputs();
-      applyCurrentFilters();
-    });
     element.addEventListener("change", () => {
       updateOutputs();
       applyCurrentFilters();
