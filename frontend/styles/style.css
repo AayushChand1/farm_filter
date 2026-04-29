@@ -27,24 +27,48 @@ body {
 }
 
 .panel {
-  width: min(320px, 100%);
+  width: min(300px, 100%);
   height: 100vh;
-  padding: 18px 16px;
+  padding: 14px 14px 12px;
   border-right: 1px solid var(--border);
   background: var(--panel);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .panel h1,
 .panel h2 {
   margin-top: 0;
+  margin-bottom: 10px;
+  line-height: 1.15;
+}
+
+.panel h1 {
+  font-size: 1.55rem;
+}
+
+.panel h2 {
+  font-size: 1rem;
+}
+
+.panel p,
+.panel label,
+.panel span,
+.panel output,
+.panel strong,
+.panel button,
+.panel select,
+.panel input {
+  font-size: 0.94rem;
 }
 
 .intro,
 .status {
   color: var(--muted);
-  line-height: 1.45;
+  line-height: 1.35;
+  margin: 8px 0;
 }
 
 .status.error {
@@ -55,8 +79,8 @@ body {
 .filter-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 10px 0 6px;
+  gap: 8px;
+  margin: 8px 0 4px;
 }
 
 .upload-field {
@@ -70,19 +94,19 @@ body {
 
 .actions {
   display: grid;
-  gap: 8px;
-  margin: 14px 0;
+  gap: 6px;
+  margin: 10px 0;
 }
 
 .export-control {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 button {
   border: 0;
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 9px 11px;
   background: var(--accent);
   color: #fff;
   font-weight: 600;
@@ -95,8 +119,8 @@ button:hover {
 
 .filter-group,
 .summary {
-  margin-top: 18px;
-  padding-top: 10px;
+  margin-top: 12px;
+  padding-top: 8px;
   border-top: 1px solid var(--border);
 }
 
@@ -106,7 +130,7 @@ input[type="range"] {
 
 select {
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: #fff;
@@ -115,7 +139,7 @@ select {
 
 output {
   display: inline-block;
-  margin-top: 2px;
+  margin-top: 0;
   color: var(--muted);
 }
 
