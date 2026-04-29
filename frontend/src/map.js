@@ -1,5 +1,7 @@
 (function () {
-  const map = L.map("map").setView([28.2, 84.1], 8);
+  const map = L.map("map", {
+    scrollWheelZoom: true,
+  }).setView([28.2, 84.1], 8);
 
   const osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
@@ -36,9 +38,19 @@
     activeBaseLayer.addTo(map);
   }
 
+  function setScrollWheelZoom(enabled) {
+    if (enabled) {
+      map.scrollWheelZoom.enable();
+      return;
+    }
+
+    map.scrollWheelZoom.disable();
+  }
+
   window.FarmDetectMap = {
     map,
     renderLayer,
     setBasemap,
+    setScrollWheelZoom,
   };
 })();

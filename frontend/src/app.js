@@ -149,5 +149,15 @@
     window.L.DomEvent.disableClickPropagation(elements.controls);
   }
 
+  if (elements.controls && window.FarmDetectMap) {
+    elements.controls.addEventListener("mouseenter", () => {
+      window.FarmDetectMap.setScrollWheelZoom(false);
+    });
+
+    elements.controls.addEventListener("mouseleave", () => {
+      window.FarmDetectMap.setScrollWheelZoom(true);
+    });
+  }
+
   updateOutputs();
 })();
