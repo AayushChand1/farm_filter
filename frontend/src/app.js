@@ -16,6 +16,8 @@
     clearSessionButton: document.getElementById("clearSessionButton"),
     exportFormatSelect: document.getElementById("exportFormatSelect"),
     basemapSelect: document.getElementById("basemapSelect"),
+    basemapOpacitySlider: document.getElementById("basemapOpacitySlider"),
+    basemapOpacityValue: document.getElementById("basemapOpacityValue"),
     areaToggle: document.getElementById("areaToggle"),
     ratioToggle: document.getElementById("ratioToggle"),
     angleToggle: document.getElementById("angleToggle"),
@@ -66,6 +68,7 @@
   }
 
   function updateOutputs() {
+    elements.basemapOpacityValue.value = `${Number(elements.basemapOpacitySlider.value)}%`;
     elements.areaValue.value = elements.areaSlider.value;
     elements.ratioValue.value = Number(elements.ratioSlider.value).toFixed(1);
     elements.angleValue.value = elements.angleSlider.value;
@@ -199,6 +202,10 @@
   elements.clearSessionButton.addEventListener("click", handleClearSession);
   elements.basemapSelect.addEventListener("change", () => {
     window.FarmDetectMap.setBasemap(elements.basemapSelect.value);
+  });
+  elements.basemapOpacitySlider.addEventListener("input", () => {
+    updateOutputs();
+    window.FarmDetectMap.setBasemapOpacity(1 - (Number(elements.basemapOpacitySlider.value) / 100));
   });
 
   if (window.L && elements.controls) {

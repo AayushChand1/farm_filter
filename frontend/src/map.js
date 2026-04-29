@@ -1,4 +1,6 @@
 (function () {
+  let basemapOpacity = 1;
+
   const map = L.map("map", {
     preferCanvas: true,
     scrollWheelZoom: true,
@@ -7,11 +9,13 @@
   const osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
     maxZoom: 22,
+    opacity: basemapOpacity,
   });
 
   const satelliteLayer = L.tileLayer("https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
     attribution: "&copy; Google",
     maxZoom: 22,
+    opacity: basemapOpacity,
   });
 
   let activeBaseLayer = osmLayer.addTo(map);
@@ -45,7 +49,14 @@
   function setBasemap(kind) {
     map.removeLayer(activeBaseLayer);
     activeBaseLayer = kind === "satellite" ? satelliteLayer : osmLayer;
+    activeBaseLayer.setOpacity(basemapOpacity);
     activeBaseLayer.addTo(map);
+  }
+
+  function setBasemapOpacity(opacity) {
+    basemapOpacity = opacity;
+    osmLayer.setOpacity(opacity);
+    satelliteLayer.setOpacity(opacity);
   }
 
   function setScrollWheelZoom(enabled) {
@@ -62,6 +73,7 @@
     map,
     renderLayer,
     setBasemap,
+    setBasemapOpacity,
     setScrollWheelZoom,
   };
 })();
