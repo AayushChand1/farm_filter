@@ -6,6 +6,7 @@
     filteredData: null,
     totalCount: 0,
     visibleCount: 0,
+    liveFilterFrame: null,
   };
 
   const elements = {
@@ -86,6 +87,10 @@
     state.filteredData = null;
     state.totalCount = 0;
     state.visibleCount = 0;
+    if (state.liveFilterFrame !== null) {
+      window.cancelAnimationFrame(state.liveFilterFrame);
+      state.liveFilterFrame = null;
+    }
     elements.fileInput.value = "";
     window.FarmDetectMap.clearLayer();
     refreshCounts();
@@ -108,6 +113,21 @@
     state.filteredData = window.FarmDetectFilters.applyFilters(state.sourceData, getFilters());
     state.visibleCount = state.filteredData.features.length;
     renderFilteredData({ fitBounds: false });
+  }
+
+  function scheduleLiveFilterUpdate() {
+    if (!state.hasProcessedData || !state.sourceData) {
+      return;
+    }
+
+    if (state.liveFilterFrame !== null) {
+      return;
+    }
+
+    state.liveFilterFrame = window.requestAnimationFrame(() => {
+      state.liveFilterFrame = null;
+      applyCurrentFilters();
+    });
   }
 
   async function handleUpload() {
@@ -177,6 +197,7 @@
   ].forEach((element) => {
     element.addEventListener("input", () => {
       updateOutputs();
+      scheduleLiveFilterUpdate();
     });
     element.addEventListener("change", () => {
       updateOutputs();
