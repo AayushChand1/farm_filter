@@ -98,12 +98,6 @@
       fitBounds: Boolean(options && options.fitBounds),
     });
     refreshCounts();
-
-    if (payload.previewTruncated) {
-      setStatus(`Showing ${state.visibleCount} filtered features. Map preview limited to first ${payload.previewLimit}.`);
-      return;
-    }
-
     setStatus(`Showing ${state.visibleCount} filtered features.`);
   }
 

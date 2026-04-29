@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 DATA_CACHE = {}
 PROCESS_JOBS = {}
-PREVIEW_LIMIT = 4000
 
 
 def clear_data_cache():
@@ -36,15 +35,15 @@ def _set_job_state(job_id: str, **updates):
     return job
 
 
-def _feature_collection_from_gdf(gdf: gpd.GeoDataFrame, limit: int = PREVIEW_LIMIT) -> tuple[dict, bool]:
+def _feature_collection_from_gdf(gdf: gpd.GeoDataFrame) -> dict:
     if gdf.empty:
-        return {"type": "FeatureCollection", "features": []}, False
+        return {"type": "FeatureCollection", "features": []}
 
-    preview_gdf = gdf.head(limit).copy()
-    available_columns = set(preview_gdf.columns)
+    feature_gdf = gdf.copy()
+    available_columns = set(feature_gdf.columns)
     props_to_keep = [column for column in ("name", "area", "ratio", "orientation") if column in available_columns]
-    preview_gdf = preview_gdf.loc[:, props_to_keep + ["geometry"]]
-    return preview_gdf.__geo_interface__, len(gdf) > len(preview_gdf)
+    feature_gdf = feature_gdf.loc[:, props_to_keep + ["geometry"]]
+    return feature_gdf.__geo_interface__
 
 
 def _slider_bounds_from_gdf(gdf: gpd.GeoDataFrame) -> dict[str, float]:
@@ -80,11 +79,8 @@ def _filter_gdf(gdf: gpd.GeoDataFrame, filters: FilterRequest) -> gpd.GeoDataFra
 
 
 def _cache_payload(gdf: gpd.GeoDataFrame) -> dict:
-    preview, truncated = _feature_collection_from_gdf(gdf)
     return {
-        "data": preview,
-        "previewTruncated": truncated,
-        "previewLimit": PREVIEW_LIMIT,
+        "data": _feature_collection_from_gdf(gdf),
         "totalCount": int(DATA_CACHE["data"].shape[0]),
         "visibleCount": int(gdf.shape[0]),
         "sliderBounds": DATA_CACHE["slider_bounds"],
