@@ -9,8 +9,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, Response
 from starlette.background import BackgroundTask
 
-from app.api.process import DATA_CACHE
-from app.models.schemas import ExportRequest
+from app.api.process import DATA_CACHE, _filter_gdf
+from app.models.schemas import ExportRequest, FilterRequest
 
 router = APIRouter()
 
@@ -19,25 +19,29 @@ def _request_to_gdf(request: ExportRequest | None) -> tuple[gpd.GeoDataFrame, st
     if request and request.data:
         feature_collection = request.data
         filename = request.filename or "filtered_buildings"
-    else:
-        geojson_text = DATA_CACHE.get("geojson_text")
-        filename = DATA_CACHE.get("source_name", "buildings")
-        feature_collection = json.loads(geojson_text) if geojson_text else None
+        gdf = gpd.GeoDataFrame.from_features(feature_collection["features"], crs="EPSG:4326")
+        return gdf, filename
 
-    if not feature_collection:
+    cached_gdf = DATA_CACHE.get("data")
+    filename = request.filename if request and request.filename else DATA_CACHE.get("source_name", "buildings")
+    if cached_gdf is None or cached_gdf.empty:
         raise HTTPException(status_code=400, detail="No processed data is available for export.")
 
-    gdf = gpd.GeoDataFrame.from_features(feature_collection["features"], crs="EPSG:4326")
-    return gdf, filename
+    if request and request.filters:
+        filters = FilterRequest.model_validate(request.filters)
+        return _filter_gdf(cached_gdf, filters), filename
+
+    return cached_gdf, filename
 
 
 @router.get("/export")
 def export_latest_geojson():
-    geojson_text = DATA_CACHE.get("geojson_text")
+    gdf = DATA_CACHE.get("data")
     filename = DATA_CACHE.get("source_name", "buildings")
-    if not geojson_text:
+    if gdf is None or gdf.empty:
         raise HTTPException(status_code=400, detail="No processed data is available for export.")
 
+    geojson_text = gdf.to_json()
     headers = {"Content-Disposition": f'attachment; filename="{filename}.geojson"'}
     return Response(content=geojson_text, media_type="application/geo+json", headers=headers)
 

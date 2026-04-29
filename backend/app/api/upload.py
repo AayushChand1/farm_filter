@@ -48,6 +48,17 @@ def remove_upload_dir(upload_id: str | None):
         shutil.rmtree(dataset_dir, ignore_errors=True)
 
 
+def clear_upload_dirs():
+    if not UPLOAD_DIR.exists():
+        return
+
+    for child in UPLOAD_DIR.iterdir():
+        if child.is_dir():
+            shutil.rmtree(child, ignore_errors=True)
+        else:
+            child.unlink(missing_ok=True)
+
+
 @router.post("/upload")
 async def upload_files(files: list[UploadFile] = File(...)):
     if not files:

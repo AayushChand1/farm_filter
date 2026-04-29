@@ -59,7 +59,70 @@
     return payload;
   }
 
-  async function uploadAndProcess(files) {
+  function uploadFiles(formData, onProgress) {
+    return new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open("POST", `${API_BASE}/upload`);
+      request.responseType = "json";
+
+      request.upload.addEventListener("progress", (event) => {
+        if (!onProgress || !event.lengthComputable) {
+          return;
+        }
+
+        const percent = Math.round((event.loaded / event.total) * 100);
+        onProgress({
+          phase: "upload",
+          progress: percent,
+          message: `Uploading dataset... ${percent}%`,
+        });
+      });
+
+      request.addEventListener("load", () => {
+        const payload = request.response;
+        if (request.status >= 200 && request.status < 300) {
+          resolve(payload);
+          return;
+        }
+
+        const message = payload && payload.detail ? payload.detail : "Upload failed.";
+        reject(new Error(message));
+      });
+
+      request.addEventListener("error", () => {
+        reject(new Error("Upload failed."));
+      });
+
+      request.send(formData);
+    });
+  }
+
+  async function pollProcess(jobId, onProgress) {
+    while (true) {
+      const response = await fetch(`${API_BASE}/process/status/${jobId}`);
+      if (response.status === 404) {
+        throw new Error("__PROCESS_STATUS_NOT_FOUND__");
+      }
+
+      const payload = await parseJsonResponse(response);
+
+      if (onProgress) {
+        onProgress(payload);
+      }
+
+      if (payload.status === "completed") {
+        return payload.result;
+      }
+
+      if (payload.status === "failed") {
+        throw new Error(payload.error || payload.message || "Processing failed.");
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+    }
+  }
+
+  async function uploadAndProcess(files, onProgress) {
     if (!API_BASE) {
       throw new Error("API base URL is not configured. Set `apiBase` in frontend/config.js for deployment.");
     }
@@ -74,22 +137,76 @@
     files.forEach((file) => formData.append("files", file));
 
     try {
-      const uploadResponse = await fetch(`${API_BASE}/upload`, {
-        method: "POST",
-        body: formData,
-      });
-      const uploadPayload = await parseJsonResponse(uploadResponse);
+      if (onProgress) {
+        onProgress({
+          phase: "upload",
+          progress: 0,
+          message: "Uploading dataset...",
+        });
+      }
 
-      const processResponse = await fetch(`${API_BASE}/process`, {
+      const uploadPayload = await uploadFiles(formData, onProgress);
+
+      if (onProgress) {
+        onProgress({
+          phase: "process",
+          progress: 5,
+          message: "Upload complete. Queuing dataset for processing...",
+        });
+      }
+
+      const processRequest = {
+        file_path: uploadPayload.file_path,
+        upload_id: uploadPayload.upload_id,
+      };
+
+      const processResponse = await fetch(`${API_BASE}/process/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          file_path: uploadPayload.file_path,
-          upload_id: uploadPayload.upload_id,
-        }),
+        body: JSON.stringify(processRequest),
       });
 
-      return parseJsonResponse(processResponse);
+      if (processResponse.status === 404) {
+        if (onProgress) {
+          onProgress({
+            phase: "process",
+            message: "Live progress is unavailable on this backend. Processing dataset...",
+          });
+        }
+
+        const fallbackResponse = await fetch(`${API_BASE}/process`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(processRequest),
+        });
+
+        return parseJsonResponse(fallbackResponse);
+      }
+
+      const processPayload = await parseJsonResponse(processResponse);
+
+      try {
+        return await pollProcess(processPayload.jobId, onProgress);
+      } catch (error) {
+        if (!(error instanceof Error) || error.message !== "__PROCESS_STATUS_NOT_FOUND__") {
+          throw error;
+        }
+
+        if (onProgress) {
+          onProgress({
+            phase: "process",
+            message: "Live status endpoint unavailable. Waiting for processing to finish...",
+          });
+        }
+
+        const fallbackResponse = await fetch(`${API_BASE}/process`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(processRequest),
+        });
+
+        return parseJsonResponse(fallbackResponse);
+      }
     } catch (error) {
       if (error instanceof TypeError) {
         throw new Error(
@@ -100,8 +217,36 @@
     }
   }
 
+  async function fetchFilteredData(filters) {
+    if (!API_BASE) {
+      throw new Error("API base URL is not configured. Set `apiBase` in frontend/config.js for deployment.");
+    }
+
+    const response = await fetch(`${API_BASE}/filter`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(filters),
+    });
+
+    return parseJsonResponse(response);
+  }
+
+  async function clearSession() {
+    if (!API_BASE) {
+      return;
+    }
+
+    const response = await fetch(`${API_BASE}/cache`, {
+      method: "DELETE",
+    });
+
+    await parseJsonResponse(response);
+  }
+
   window.FarmDetectUpload = {
     API_BASE,
+    clearSession,
+    fetchFilteredData,
     uploadAndProcess,
   };
 })();

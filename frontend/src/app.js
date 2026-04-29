@@ -1,8 +1,11 @@
 (function () {
   const state = {
-    sourceData: null,
-    filteredData: null,
+    hasProcessedData: false,
     exportName: "filtered_buildings",
+    requestVersion: 0,
+    filterTimer: null,
+    totalCount: 0,
+    visibleCount: 0,
   };
 
   const elements = {
@@ -10,6 +13,7 @@
     fileInput: document.getElementById("fileInput"),
     uploadButton: document.getElementById("uploadButton"),
     exportButton: document.getElementById("exportButton"),
+    clearSessionButton: document.getElementById("clearSessionButton"),
     exportFormatSelect: document.getElementById("exportFormatSelect"),
     basemapSelect: document.getElementById("basemapSelect"),
     areaToggle: document.getElementById("areaToggle"),
@@ -29,6 +33,19 @@
   function setStatus(message, isError) {
     elements.status.textContent = message;
     elements.status.classList.toggle("error", Boolean(isError));
+  }
+
+  function setLiveProgressStatus(progressState) {
+    if (!progressState || !progressState.message) {
+      return;
+    }
+
+    if (typeof progressState.progress === "number") {
+      setStatus(`${progressState.message} (${progressState.progress}%)`);
+      return;
+    }
+
+    setStatus(progressState.message);
   }
 
   function getFilters() {
@@ -55,19 +72,68 @@
   }
 
   function refreshCounts() {
-    elements.totalCount.textContent = String(state.sourceData ? state.sourceData.features.length : 0);
-    elements.visibleCount.textContent = String(state.filteredData ? state.filteredData.features.length : 0);
+    elements.totalCount.textContent = String(state.totalCount || 0);
+    elements.visibleCount.textContent = String(state.visibleCount || 0);
   }
 
-  function applyCurrentFilters() {
-    if (!state.sourceData) {
+  function resetState() {
+    state.hasProcessedData = false;
+    state.exportName = "filtered_buildings";
+    state.totalCount = 0;
+    state.visibleCount = 0;
+    state.requestVersion += 1;
+    window.clearTimeout(state.filterTimer);
+    elements.fileInput.value = "";
+    window.FarmDetectMap.clearLayer();
+    refreshCounts();
+  }
+
+  function renderResult(payload, options) {
+    const previewData = payload.data || { type: "FeatureCollection", features: [] };
+    state.hasProcessedData = true;
+    state.totalCount = Number(payload.totalCount || 0);
+    state.visibleCount = Number(payload.visibleCount || 0);
+
+    window.FarmDetectRender.renderFeatures(previewData, {
+      fitBounds: Boolean(options && options.fitBounds),
+    });
+    refreshCounts();
+
+    if (payload.previewTruncated) {
+      setStatus(`Showing ${state.visibleCount} filtered features. Map preview limited to first ${payload.previewLimit}.`);
       return;
     }
 
-    state.filteredData = window.FarmDetectFilters.applyFilters(state.sourceData, getFilters());
-    window.FarmDetectRender.renderFeatures(state.filteredData, { fitBounds: false });
-    refreshCounts();
-    setStatus(`Showing ${state.filteredData.features.length} filtered features.`);
+    setStatus(`Showing ${state.visibleCount} filtered features.`);
+  }
+
+  function applyCurrentFilters() {
+    if (!state.hasProcessedData) {
+      return;
+    }
+
+    const filters = getFilters();
+    window.clearTimeout(state.filterTimer);
+    state.filterTimer = window.setTimeout(() => {
+      const requestVersion = ++state.requestVersion;
+      setStatus("Updating filtered preview...");
+
+      window.FarmDetectUpload.fetchFilteredData(filters)
+        .then((payload) => {
+          if (requestVersion !== state.requestVersion) {
+            return;
+          }
+
+          renderResult(payload, { fitBounds: false });
+        })
+        .catch((error) => {
+          if (requestVersion !== state.requestVersion) {
+            return;
+          }
+
+          setStatus(error.message, true);
+        });
+    }, 150);
   }
 
   async function handleUpload() {
@@ -80,39 +146,47 @@
     setStatus("Uploading and processing dataset...");
 
     try {
-      const data = await window.FarmDetectUpload.uploadAndProcess(files);
-      state.sourceData = data;
-      state.filteredData = data;
+      const data = await window.FarmDetectUpload.uploadAndProcess(files, setLiveProgressStatus);
       state.exportName = files[0].name.replace(/\.[^.]+$/, "") || "filtered_buildings";
-
-      window.FarmDetectFilters.configureSliders(data, elements);
+      state.requestVersion += 1;
+      window.FarmDetectFilters.configureSliders(data.sliderBounds, elements);
       updateOutputs();
-      state.filteredData = window.FarmDetectFilters.applyFilters(state.sourceData, getFilters());
-      window.FarmDetectRender.renderFeatures(state.filteredData, { fitBounds: true });
-      refreshCounts();
-      setStatus(`Showing ${state.filteredData.features.length} filtered features.`);
+      renderResult(data, { fitBounds: true });
     } catch (error) {
       setStatus(error.message, true);
     }
   }
 
   async function handleExport(kind) {
-    if (!state.filteredData || !state.filteredData.features.length) {
+    if (!state.hasProcessedData || !state.visibleCount) {
       setStatus("There is no filtered dataset to export.", true);
       return;
     }
 
-      setStatus(`Preparing ${kind.toUpperCase()} export...`);
+    setStatus(`Preparing ${kind.toUpperCase()} export...`);
 
     try {
+      const filters = getFilters();
       if (kind === "geojson") {
-        await window.FarmDetectExport.exportGeoJSON(state.filteredData, state.exportName);
+        await window.FarmDetectExport.exportGeoJSON(filters, state.exportName);
       } else if (kind === "gpkg") {
-        await window.FarmDetectExport.exportGPKG(state.filteredData, state.exportName);
+        await window.FarmDetectExport.exportGPKG(filters, state.exportName);
       } else {
-        await window.FarmDetectExport.exportShapefile(state.filteredData, state.exportName);
+        await window.FarmDetectExport.exportShapefile(filters, state.exportName);
       }
       setStatus(`Downloaded ${kind.toUpperCase()} export.`);
+    } catch (error) {
+      setStatus(error.message, true);
+    }
+  }
+
+  async function handleClearSession() {
+    setStatus("Clearing cached data and current session...");
+
+    try {
+      await window.FarmDetectUpload.clearSession();
+      resetState();
+      setStatus("Cleared cached data and reset current input/output state.");
     } catch (error) {
       setStatus(error.message, true);
     }
@@ -140,6 +214,7 @@
   elements.exportButton.addEventListener("click", () => {
     handleExport(elements.exportFormatSelect.value);
   });
+  elements.clearSessionButton.addEventListener("click", handleClearSession);
   elements.basemapSelect.addEventListener("change", () => {
     window.FarmDetectMap.setBasemap(elements.basemapSelect.value);
   });

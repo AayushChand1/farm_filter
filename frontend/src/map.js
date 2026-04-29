@@ -32,6 +32,15 @@
     }
   }
 
+  function clearLayer() {
+    if (!geoJsonLayer) {
+      return;
+    }
+
+    map.removeLayer(geoJsonLayer);
+    geoJsonLayer = null;
+  }
+
   function setBasemap(kind) {
     map.removeLayer(activeBaseLayer);
     activeBaseLayer = kind === "satellite" ? satelliteLayer : osmLayer;
@@ -48,6 +57,7 @@
   }
 
   window.FarmDetectMap = {
+    clearLayer,
     map,
     renderLayer,
     setBasemap,

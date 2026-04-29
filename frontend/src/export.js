@@ -25,22 +25,22 @@
     window.URL.revokeObjectURL(downloadUrl);
   }
 
-  function buildPayload(featureCollection, filename) {
+  function buildPayload(filters, filename) {
     return {
       filename,
-      data: featureCollection,
+      filters,
     };
   }
 
   window.FarmDetectExport = {
-    exportGeoJSON(featureCollection, filename) {
-      return exportDataset("/export/geojson", buildPayload(featureCollection, filename), `${filename}.geojson`);
+    exportGeoJSON(filters, filename) {
+      return exportDataset("/export/geojson", buildPayload(filters, filename), `${filename}.geojson`);
     },
-    exportGPKG(featureCollection, filename) {
-      return exportDataset("/export/gpkg", buildPayload(featureCollection, filename), `${filename}.gpkg`);
+    exportGPKG(filters, filename) {
+      return exportDataset("/export/gpkg", buildPayload(filters, filename), `${filename}.gpkg`);
     },
-    exportShapefile(featureCollection, filename) {
-      return exportDataset("/export/shapefile", buildPayload(featureCollection, filename), `${filename}.zip`);
+    exportShapefile(filters, filename) {
+      return exportDataset("/export/shapefile", buildPayload(filters, filename), `${filename}.zip`);
     },
   };
 })();
