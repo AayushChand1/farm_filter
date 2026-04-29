@@ -59,6 +59,16 @@
     return payload;
   }
 
+  async function checkBackendReachable() {
+    const response = await fetch(`${API_BASE}/health`, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error("Backend health check failed.");
+    }
+  }
+
   function uploadFiles(formData, onProgress) {
     return new Promise((resolve, reject) => {
       const request = new XMLHttpRequest();
@@ -90,7 +100,7 @@
       });
 
       request.addEventListener("error", () => {
-        reject(new Error("Upload failed."));
+        reject(new Error(`Upload failed. The backend may be unreachable at ${API_BASE}.`));
       });
 
       request.send(formData);
@@ -137,6 +147,15 @@
     files.forEach((file) => formData.append("files", file));
 
     try {
+      if (onProgress) {
+        onProgress({
+          phase: "health",
+          message: "Checking backend connection...",
+        });
+      }
+
+      await checkBackendReachable();
+
       if (onProgress) {
         onProgress({
           phase: "upload",

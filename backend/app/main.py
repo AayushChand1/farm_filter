@@ -15,6 +15,12 @@ app.add_middleware(
 )
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
 app.include_router(upload.router)
 app.include_router(process.router)
 app.include_router(export.router)
