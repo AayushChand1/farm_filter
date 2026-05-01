@@ -1,5 +1,3 @@
-cd backend
-python3 -m venv venv
+A personal-use web tool for filtering buildings based on their area, elongation and orientation.
 
-source venv/bin/activate
-
+[Farm Filter App](https://farm-filter.vercel.app/)
