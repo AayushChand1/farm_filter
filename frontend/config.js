@@ -1,3 +1,3 @@
 window.FarmDetectConfig = {
-  apiBase: "http://192.168.10.86:8000",
+  apiBase: "http://127.0.0.1:8000",
 };
