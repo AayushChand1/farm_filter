@@ -22,12 +22,15 @@
     areaToggle: document.getElementById("areaToggle"),
     ratioToggle: document.getElementById("ratioToggle"),
     angleToggle: document.getElementById("angleToggle"),
+    rectangularityToggle: document.getElementById("rectangularityToggle"),
     areaSlider: document.getElementById("areaSlider"),
     ratioSlider: document.getElementById("ratioSlider"),
     angleSlider: document.getElementById("angleSlider"),
+    rectangularitySlider: document.getElementById("rectangularitySlider"),
     areaValue: document.getElementById("areaValue"),
     ratioValue: document.getElementById("ratioValue"),
     angleValue: document.getElementById("angleValue"),
+    rectangularityValue: document.getElementById("rectangularityValue"),
     status: document.getElementById("status"),
     totalCount: document.getElementById("totalCount"),
     visibleCount: document.getElementById("visibleCount"),
@@ -65,6 +68,10 @@
         enabled: elements.angleToggle.checked,
         value: Number(elements.angleSlider.value),
       },
+      rectangularity: {
+        enabled: elements.rectangularityToggle.checked,
+        value: Number(elements.rectangularitySlider.value),
+      },
     };
   }
 
@@ -73,6 +80,7 @@
     elements.areaValue.value = elements.areaSlider.value;
     elements.ratioValue.value = Number(elements.ratioSlider.value).toFixed(1);
     elements.angleValue.value = elements.angleSlider.value;
+    elements.rectangularityValue.value = Number(elements.rectangularitySlider.value).toFixed(2);
   }
 
   function refreshCounts() {
@@ -194,6 +202,7 @@
     elements.areaSlider,
     elements.ratioSlider,
     elements.angleSlider,
+    elements.rectangularitySlider,
   ].forEach((element) => {
     element.addEventListener("input", () => {
       updateOutputs();
@@ -209,6 +218,7 @@
     elements.areaToggle,
     elements.ratioToggle,
     elements.angleToggle,
+    elements.rectangularityToggle,
   ].forEach((element) => {
     element.addEventListener("change", () => {
       updateOutputs();

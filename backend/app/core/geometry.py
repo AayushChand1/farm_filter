@@ -16,17 +16,17 @@ def _normalize_angle(angle):
     return float(abs(90.0 - angle))
 
 
-def compute_ratio_and_orientation(geom):
+def compute_ratio_orientation_and_rectangularity(geom):
     if geom is None or geom.is_empty:
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
 
     rectangle = geom.minimum_rotated_rectangle
     if rectangle.is_empty or rectangle.geom_type != "Polygon":
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
 
     coords = list(rectangle.exterior.coords)
     if len(coords) < 5:
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
 
     edges = []
     for index in range(4):
@@ -39,11 +39,13 @@ def compute_ratio_and_orientation(geom):
             edges.append((length, dx, dy))
 
     if not edges:
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
 
     short_edge = min(length for length, _, _ in edges)
     long_length, long_dx, long_dy = max(edges, key=lambda item: item[0])
     ratio = float(long_length / short_edge) if short_edge else 0.0
     orientation = _normalize_angle(math.degrees(math.atan2(long_dy, long_dx)))
+    rectangle_area = float(rectangle.area) if rectangle.area else 0.0
+    rectangularity = float(geom.area / rectangle_area) if rectangle_area else 0.0
 
-    return ratio, orientation
+    return ratio, orientation, rectangularity

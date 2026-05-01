@@ -7,7 +7,7 @@ import geopandas as gpd
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from app.api.upload import clear_upload_dirs, remove_upload_dir
-from app.core.geometry import compute_area, compute_ratio_and_orientation
+from app.core.geometry import compute_area, compute_ratio_orientation_and_rectangularity
 from app.models.schemas import FilterRequest, ProcessRequest
 
 router = APIRouter()
@@ -41,7 +41,7 @@ def _feature_collection_from_gdf(gdf: gpd.GeoDataFrame) -> dict:
 
     feature_gdf = gdf.copy()
     available_columns = set(feature_gdf.columns)
-    props_to_keep = [column for column in ("name", "area", "ratio", "orientation") if column in available_columns]
+    props_to_keep = [column for column in ("name", "area", "ratio", "orientation", "rectangularity") if column in available_columns]
     feature_gdf = feature_gdf.loc[:, props_to_keep + ["geometry"]]
     return feature_gdf.__geo_interface__
 
@@ -52,6 +52,7 @@ def _slider_bounds_from_gdf(gdf: gpd.GeoDataFrame) -> dict[str, float]:
             "areaMax": 100,
             "ratioMax": 5,
             "angleMax": 90,
+            "rectangularityMax": 1,
         }
 
     area_max = max(100, int(gdf["area"].max() + 10))
@@ -60,6 +61,7 @@ def _slider_bounds_from_gdf(gdf: gpd.GeoDataFrame) -> dict[str, float]:
         "areaMax": area_max,
         "ratioMax": ratio_max,
         "angleMax": 90,
+        "rectangularityMax": 1,
     }
 
 
@@ -74,6 +76,9 @@ def _filter_gdf(gdf: gpd.GeoDataFrame, filters: FilterRequest) -> gpd.GeoDataFra
 
     if filters.angle.enabled:
         filtered_gdf = filtered_gdf.loc[filtered_gdf["orientation"] >= filters.angle.value]
+
+    if filters.rectangularity.enabled:
+        filtered_gdf = filtered_gdf.loc[filtered_gdf["rectangularity"] >= filters.rectangularity.value]
 
     return filtered_gdf
 
@@ -117,13 +122,15 @@ def _process_dataset(file_path: Path, job_id: str | None = None) -> dict:
     ratios = []
     areas = []
     angles = []
+    rectangularities = []
     progress_step = max(1, total_features // 20) if total_features else 1
 
     for index, geom in enumerate(calc_gdf.geometry, start=1):
-        ratio, angle = compute_ratio_and_orientation(geom)
+        ratio, angle, rectangularity = compute_ratio_orientation_and_rectangularity(geom)
         ratios.append(ratio)
         angles.append(angle)
         areas.append(compute_area(geom))
+        rectangularities.append(rectangularity)
 
         if job_id and (index == total_features or index % progress_step == 0):
             progress = 35 + int((index / total_features) * 45)
@@ -141,6 +148,7 @@ def _process_dataset(file_path: Path, job_id: str | None = None) -> dict:
     result_gdf["ratio"] = ratios
     result_gdf["area"] = areas
     result_gdf["orientation"] = angles
+    result_gdf["rectangularity"] = rectangularities
 
     if result_gdf.crs:
         result_gdf = result_gdf.to_crs(4326)

@@ -23,3 +23,4 @@ class FilterRequest(BaseModel):
     area: FilterThreshold
     ratio: FilterThreshold
     angle: FilterThreshold
+    rectangularity: FilterThreshold

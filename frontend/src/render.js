@@ -15,6 +15,7 @@
       `Area: ${Number(props.area || 0).toFixed(2)}`,
       `Ratio: ${Number(props.ratio || 0).toFixed(2)}`,
       `Orientation: ${Number(props.orientation || 0).toFixed(1)}°`,
+      `Rectangularity: ${Number(props.rectangularity || 0).toFixed(2)}`,
     ].join("<br>");
   }
 
